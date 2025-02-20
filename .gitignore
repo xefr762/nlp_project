@@ -178,3 +178,4 @@ kinopoisk.json
 kinopoisk.jsonl
 .vscode/settings.json
 *.csv
+notebooks/task1/save.csv
