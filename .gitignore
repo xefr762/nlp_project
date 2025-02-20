@@ -177,3 +177,4 @@ kinopoisk.json
 .jsonl
 kinopoisk.jsonl
 .vscode/settings.json
+*.csv
