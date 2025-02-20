@@ -174,3 +174,5 @@ cython_debug/
 #JSON large file
 .json
 kinopoisk.json
+.jsonl
+kinopoisk.jsonl
