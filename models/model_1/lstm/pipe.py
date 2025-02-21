@@ -27,3 +27,6 @@ def clean_text(text):
     clean_text = clean_text_for_person(text)
     new_text = re.sub(r'[^а-яё\s]', '', clean_text)
     return new_text
+
+def preprocessor(text):
+    
