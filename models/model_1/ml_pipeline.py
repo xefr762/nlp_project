@@ -10,6 +10,7 @@ import joblib
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
 
 nltk.download('stopwords')
 
@@ -30,8 +31,13 @@ def clean_text_for_person(text):
     return [cleaned_text]
 
 vectorizer = joblib.load('vectorizer.joblib')
+encoder = joblib.load('LabelEncoder.joblib')
 
-def pipline(text):
+def pipeline(text):
     clean_text = clean_text_for_person(text)
     vectorize = vectorizer(clean_text)
     return(vectorize)
+
+def decode(preds):
+    decoded_message = encoder.inverse_transform(preds)
+    return decoded_message
