@@ -8,7 +8,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from models.model_1.ml_pipeline import pipeline, decode
 from sklearn.linear_model import LogisticRegression
 
-df = pd.DataFrame({'ML(LogReg)' : 0.79, 'LSTM' : 0.84, 'Bert' : 0.91}, index=['f1_score'])
+df = pd.DataFrame({'ML(LogReg)' : 0.79, 'LSTM' : 0.77, 'Bert' : 0.91}, index=['f1_score'])
 
 def run():
     st.title("🎬 Классификация отзывов на фильмы")
