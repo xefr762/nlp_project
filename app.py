@@ -39,7 +39,7 @@ import streamlit as st
 #     import pages.gpt_generation
 #     pages.gpt_generation.run()
 
-st.set_page_config(page_title="NLP Проект", page_icon="📖")
+st.set_page_config(page_title="NLP Проект", page_icon="📖", layout='wide')
 
 if "page" not in st.session_state:
     st.session_state.page = "Главная"
@@ -55,21 +55,19 @@ st.sidebar.button("⚠️ Оценка токсичности", on_click=lambda:
 st.sidebar.button("🤖 Генерация текста", on_click=lambda: go_to("Генерация"), use_container_width=True)
 
 if st.session_state.page == "Главная":
-    st.title('Обработка естесственного языка • Natural Language Processing')
-
+    st.title("Обработка естественного языка • NLP")
+    
     st.divider()
-
-    st.subheader('Основные задачи проекта:')
-    st.write('1. Классификация отзывов на фильмы')
-    st.write('2. Оценка степени токсичности')  
-    st.write('3. Генерация текста GPT-моделью')
-
+    st.subheader("📌 Основные задачи проекта:")
+    st.markdown("- 🎬 **Классификация отзывов на фильмы**")
+    st.markdown("- ⚠️ **Оценка степени токсичности**")
+    st.markdown("- 🤖 **Генерация текста GPT-моделью**")
+    
     st.divider()
-
-    st.subheader('Участники проекта:')
-    st.write('Илья Крючков')
-    st.write('Илья Тыщенко')
-    st.write('Владислав Мороз')
+    st.subheader("👥 Участники проекта:")
+    st.markdown("- **Илья Крючков**")
+    st.markdown("- **Илья Тыщенко**")
+    st.markdown("- **Владислав Мороз**")
 
 elif st.session_state.page == "Классификация":
     from app_pages import movie_reviews
