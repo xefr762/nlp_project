@@ -30,14 +30,16 @@ def clean_text_for_person(text):
 
     return [cleaned_text]
 
-vectorizer = joblib.load('vectorizer.joblib')
-encoder = joblib.load('LabelEncoder.joblib')
+# vectorizer = joblib.load('models/model_1/vectorizer.joblib')
+# encoder = joblib.load('models/model_1/LabelEncoder.joblib')
 
 def pipeline(text):
     clean_text = clean_text_for_person(text)
+    vectorizer = joblib.load('models/model_1/vectorizer.joblib')
     vectorize = vectorizer.transform(clean_text)
     return(vectorize)
 
 def decode(preds):
+    encoder = joblib.load('models/model_1/LabelEncoder.joblib')
     decoded_message = encoder.inverse_transform(preds)
     return decoded_message

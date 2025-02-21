@@ -1,8 +1,14 @@
 import streamlit as st
+import pandas as pd
 import torch
 import time
+import joblib
 from torch import nn
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from models.model_1.ml_pipeline import pipeline, decode
+from sklearn.linear_model import LogisticRegression
+
+df = pd.DataFrame({'ML(LogReg)' : 0.79, 'LSTM' : 0.84, 'Bert' : 0.91}, index=['f1_score'])
 
 def run():
     st.title("🎬 Классификация отзывов на фильмы")
@@ -13,6 +19,9 @@ def run():
     st.write('3. BERT-based модель (rubert-tiny-sentiment-balanced)')
     st.write('Каждое предсказание сопровождается временем его вычисления. Также представлена сравнительная таблица метрик f1-macro для всех моделей')
     st.divider()
+    st.subheader('F1-Score по моделям')
+    st.table(df)
+    st.divider()
     model_choose = st.radio('Выберете модель', options = ['ML', 'LSTM', 'Bert'])
     st.write("Введите текст отзыва, и модель предскажет его тональность.")
 
@@ -20,7 +29,24 @@ def run():
     
     if st.button("Анализировать"):
         if model_choose == 'ML':
-            pass #TODO
+            @st.cache_resource
+            def load_model_ml():
+                model = joblib.load('models/model_1/best_model.pkl')
+                return model
+            def clsf_ml(text):
+                start_time = time.time()
+                pred = model.predict(text)
+                end_time = time.time()
+                elapsed_time = end_time - start_time
+                return decode(pred), elapsed_time
+            if user_input:
+                model = load_model_ml()
+                text = pipeline(user_input)
+                result, time_ml  = clsf_ml(text)
+                st.write(f"Отзыв скорее всего : **{result}**. Выполнено за : {time_ml:.4f}")
+            else:
+                st.warning("Введите текст перед оценкой.")
+
         elif model_choose == 'LSTM':
             pass #TODO
         else:
@@ -70,14 +96,11 @@ def run():
                 elapsed_time = end_time - start_time
                 return cls, elapsed_time
 
-            if user_input.strip():
+            if user_input:
                 res, time_s = eval_clf(user_input)
                 sentiment_dict = {"Положительный": 0, "Отрицательный": 1, "Нейтральный": 2}
                 reversed_dict = {v: k for k, v in sentiment_dict.items()}
                 st.write(f"Отзыв скорее всего : **{reversed_dict[res]}**. Выполнено за : {time_s:.4f}")
+                st.image('images/loss_ROCAUC_cls.png', caption='ROC-AUC')
             else:
                 st.warning("Введите текст перед оценкой.")
-
-    if st.button('Показать метрики модели'):
-        st.image('images/loss_ROCAUC_cls.png', caption='Loss ROC-AUC', use_container_width=True)
-
