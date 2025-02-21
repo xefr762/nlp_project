@@ -179,3 +179,6 @@ kinopoisk.jsonl
 .vscode/settings.json
 *.csv
 notebooks/task1/save.csv
+.DS_Store
+notebooks/.DS_Store
+
