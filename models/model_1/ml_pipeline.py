@@ -35,7 +35,7 @@ encoder = joblib.load('LabelEncoder.joblib')
 
 def pipeline(text):
     clean_text = clean_text_for_person(text)
-    vectorize = vectorizer(clean_text)
+    vectorize = vectorizer.transform(clean_text)
     return(vectorize)
 
 def decode(preds):
