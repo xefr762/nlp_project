@@ -2,87 +2,80 @@ import re
 import nltk
 import string
 import pymorphy2
-from nltk.corpus import stopwords
 import numpy as np
-
+import pandas as pd
 import torch
-from torch import nn
-
 from collections import Counter
-
-nltk.download('stopwords')
-
-import gensim
+from nltk.corpus import stopwords
 from gensim.models import Word2Vec
 
-# Инициализируем лемматизатор и список стоп-слов
-morph = pymorphy2.MorphAnalyzer()
+nltk.download('stopwords')
 stop_words = set(stopwords.words('russian'))
 
-def clean_text_for_person(text):
-    if not isinstance(text, str):  # Проверяем, что текст - строка
-        return [""]
+morph = pymorphy2.MorphAnalyzer()
+
+# Функция очистки и лемматизации текста
+def clean_text(text):    
+    if not isinstance(text, str):
+        return ""
 
     text = text.lower()
-    text = text.translate(str.maketrans('', '', string.punctuation))  # Удаляем пунктуацию
-    tokens = text.split()  # Разбиваем на слова
+    text = text.translate(str.maketrans('', '', string.punctuation))                          # Удаляем пунктуацию
+    tokens = text.split()                                                                     # Разбиваем на слова
     tokens = [morph.parse(word)[0].normal_form for word in tokens if word not in stop_words]  # Лемматизация
-    tokens = [word for word in tokens if len(word) > 1]  # Убираем короткие слова
-    cleaned_text = " ".join(tokens)
+    tokens = [word for word in tokens if len(word) > 1]                                       # Убираем короткие слова
+    return tokens                                                                             # Возвращаем список токенов
 
-    return [cleaned_text]
+# Загружаем word2vec
+w2v_model = Word2Vec.load("w2v.model")
 
-def clean_text(text):
-    clean_text = clean_text_for_person(text)
+def cc_cleaner(text):
+    clean_text = text
     new_text = re.sub(r'[^а-яё\s]', '', clean_text)
     return new_text
 
-model = Word2Vec.load("w2v.model")
+# Построение словаря
+def build_vocab(corpus, min_freq=5):
+    all_words = [word for text in corpus for word in text]
+    word_counts = Counter(all_words)
+    sorted_words = [word for word, count in word_counts.items() if count >= min_freq]
+    vocab_to_int = {word: idx + 1 for idx, word in enumerate(sorted_words)}
+    return vocab_to_int
 
-def get_words_by_freq(sorted_words: list[tuple[str, int]], n: int = 10) -> list:
-    return list(filter(lambda x: x[1] > n, sorted_words))
+# загружаем тренировочный датасет и строим словарь.
+df = pd.read_csv('save_true.csv')
+corpus = df['Content'].astype('str').apply(cc_cleaner).to_list()
+vocab_to_int = build_vocab([text.split() for text in corpus], min_freq=5)
 
-def preprocessor(message):
+# Текст в числа
+def text_to_sequence(tokens, vocab_to_int):
+    return [vocab_to_int[word] for word in tokens if word in vocab_to_int]
+
+# Функция для паддинга
+def padding(sequence, max_length=80):
+    padded = np.zeros(max_length, dtype=int)
+    sequence = sequence[:max_length]
+    padded[-len(sequence):] = sequence
+    return padded
+
+# Создаём embedding_matrix из Word2Vec
+def create_embedding_matrix(vocab_to_int, w2v_model, embedding_dim=128):
+    vocab_size = len(vocab_to_int) + 1
+    embedding_matrix = np.zeros((vocab_size, embedding_dim))
+
+    for word, idx in vocab_to_int.items():
+        if word in w2v_model.wv:
+            embedding_matrix[idx] = w2v_model.wv[word]
     
-    corpus = [word for text in message for word in text.split()]
-    sorted_words = Counter(corpus).most_common()
-    porog = 5
+    return torch.FloatTensor(embedding_matrix)
 
-    reviews_int = []
-    for text in message:
-        r = [vocab_to_int[word] for word in text.split() if vocab_to_int.get(word)]
-        reviews_int.append(r)
+# Функция паредобработки текста от пользователя
+def preprocess_user_input(text, vocab_to_int, max_length=80):
+    tokens = clean_text(text)
+    sequence = text_to_sequence(tokens, vocab_to_int)                    # Преобразование в индексы
+    padded_sequence = padding(sequence, max_length)                      # Паддинг
 
-    sorted_words = get_words_by_freq(sorted_words, porog)
-    vocab_to_int = {w:i+1 for i, (w,c) in enumerate(sorted_words)}
+    return torch.tensor(padded_sequence, dtype=torch.long).unsqueeze(0)
 
-    VOCAB_SIZE = len(vocab_to_int) + 1
-    EMBEDDING_DIM = 128
-
-    embedding_matrix = np.zeros((VOCAB_SIZE, EMBEDDING_DIM))
-
-    # Бежим по всем словам словаря: если слово есть в word2vec, 
-    # достаем его вектор; если слова нет, то распечатываем его и пропускаем
-    for word, i in vocab_to_int.items():
-            embedding_vector = model.wv[word]
-            embedding_matrix[i] = embedding_vector
-    embedding_layer = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_matrix))
-
-    return embedding_layer, reviews_int
-
-HIDDEN_SIZE = 32
-SEQ_LEN = 80
-BATCH_SIZE = 256
-EMBEDDING_DIM = 128
-
-def padding(review_int):
-    features = np.zeros((len(review_int), 80), dtype=int)
-
-    for i, review in enumerate(review_int):
-        if not isinstance(review, list):
-            raise ValueError(f"Ошибка: ожидался список, но получено {type(review)}")
-        if len(review) == 0:
-            continue  
-        features[i, -min(len(review), 80):] = np.array(review[:80])
-    
-    return features
+# Генерируем embedding_matrix
+embedding_matrix = create_embedding_matrix(vocab_to_int, w2v_model)
